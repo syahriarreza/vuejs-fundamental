@@ -34,6 +34,7 @@
             >
               <v-icon left dark>mdi-cloud-search</v-icon>Search
             </v-btn>
+            <span v-if="errMessage != ''" class="text-h6 red--text text--accent-3">{{ errMessage }}</span>
           </v-card-actions>
         </v-card>
       </v-col>
@@ -46,26 +47,53 @@
           :loading="isFetching"
           :items-per-page="10"
           :disable-sort="true"
-          class="elevation-1"
+          :no-data-text="noDataText"
+          class="elevation-3"
         >
           <template v-slot:item.text="{ item }">
             <span v-html="item.text"></span>
           </template>
+          <template v-slot:item.link="{ item }">
+            <v-btn fab dark x-small color="primary" @click="openYoutubePlayer(item.start)">
+              <v-icon dark>mdi-play</v-icon>
+            </v-btn>
+          </template>
         </v-data-table>
       </v-col>
     </v-row>
+
+    <v-dialog
+      v-model="showPlayer"
+      :overlay-opacity="0.9"
+      @click:outside="$refs.youtube.player.stopVideo()"
+      width="unset"
+    >
+      <v-card>
+        <v-card-text>
+          <youtube ref="youtube" />
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script>
+import { getIdFromUrl } from 'vue-youtube'
+
 export default {
   data() {
     return {
+      youtubeURL: 'https://www.youtube.com/watch?v=klnvttPfOUM',
+      keyword: 'web',
       formIsValid: true,
       isFetching: false,
+      showPlayer: false,
       rules: {
         required: [(v) => !!v || 'This field is required'],
       },
+      errMessage: '',
+
+      // Data Table
       headers: [
         { text: 'Result', value: 'text' },
         { text: 'Start (second)', value: 'start' },
@@ -75,10 +103,14 @@ export default {
       options: {},
       searchData: [],
       totalData: 0,
+      noDataText: `No Data Available`,
 
-      // API Params
-      youtubeURL: 'https://www.youtube.com/watch?v=klnvttPfOUM&t=3327',
-      keyword: 'web',
+      // Youtube Player
+      videoID: 'klnvttPfOUM',
+      playerOptions: {
+        autoplay: 1,
+        start: 50,
+      },
     }
   },
   computed: {
@@ -114,11 +146,34 @@ export default {
         size: itemsPerPage,
       }
 
-      this.$store.dispatch('search/fetchSearchResult', params).then(() => {
+      this.$store.dispatch('search/fetchSearchResult', params).then((err) => {
+        if (err && err.isError) {
+          this.noDataText = err.message
+          this.errMessage = err.message
+        } else {
+          this.noDataText = `No Data Available`
+          this.errMessage = ''
+        }
+
         this.searchData = this.searchResult.data
         this.totalData = this.searchResult.total
         this.isFetching = false
       })
+    },
+    openYoutubePlayer(start) {
+      this.videoID = getIdFromUrl(this.youtubeURL)
+      this.playerOptions.start = start
+      this.showPlayer = true
+
+      let _this = this
+      setTimeout(() => {
+        // use delay to make sure the player is on ready state
+        let ytPlayer = _this.$refs.youtube.player
+        ytPlayer.loadVideoById({
+          videoId: _this.videoID,
+          startSeconds: _this.playerOptions.start,
+        })
+      }, 200)
     },
   },
 }
