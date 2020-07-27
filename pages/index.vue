@@ -12,6 +12,7 @@
                 placeholder="Please fill this field"
                 outlined
                 required
+                @keyup.enter="search"
               ></v-text-field>
               <v-text-field
                 v-model="keyword"
@@ -20,6 +21,7 @@
                 placeholder="Please fill this field"
                 outlined
                 required
+                @keyup.enter="search"
               ></v-text-field>
             </v-form>
           </v-card-text>
@@ -54,7 +56,15 @@
             <span v-html="item.text"></span>
           </template>
           <template v-slot:item.link="{ item }">
-            <v-btn fab dark x-small color="primary" @click="openYoutubePlayer(item.start)">
+            <v-btn
+              fab
+              dark
+              x-small
+              color="primary"
+              @click="openYoutubePlayer(item.start)"
+              :href="`${youtubeURL}&t=${item.start}`"
+              target="_blank"
+            >
               <v-icon dark>mdi-play</v-icon>
             </v-btn>
           </template>
@@ -62,12 +72,7 @@
       </v-col>
     </v-row>
 
-    <v-dialog
-      v-model="showPlayer"
-      :overlay-opacity="0.9"
-      @click:outside="$refs.youtube.player.stopVideo()"
-      width="unset"
-    >
+    <v-dialog v-model="showPlayer" :overlay-opacity="0.9" @click:outside="stopVideo" width="unset">
       <v-card>
         <v-card-text>
           <youtube ref="youtube" />
@@ -161,6 +166,8 @@ export default {
       })
     },
     openYoutubePlayer(start) {
+      return // Causing Error playback if using in Production
+
       this.videoID = getIdFromUrl(this.youtubeURL)
       this.playerOptions.start = start
       this.showPlayer = true
@@ -174,6 +181,10 @@ export default {
           startSeconds: _this.playerOptions.start,
         })
       }, 200)
+    },
+    stopVideo() {
+      return // Causing Error playback if using in Production
+      this.$refs.youtube.player.stopVideo()
     },
   },
 }
